@@ -1,1 +1,1 @@
-print('Hello from AZ-400 app')
+print('Hello from develop branch')
