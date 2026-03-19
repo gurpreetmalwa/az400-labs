@@ -14,12 +14,22 @@ steps:
 - script: '"C:\Program Files\Python311\python.exe" -m pip install -r requirements.txt'
   displayName: 'Install dependencies'
 
-- script: '"C:\Program Files\Python311\python.exe" -m pytest test_app.py --junitxml=test-results.xml'
-  displayName: 'Run tests'
+- script: '"C:\Program Files\Python311\python.exe" -m flake8 app.py --max-line-length=88'
+  displayName: 'Lint check'
+
+- script: '"C:\Program Files\Python311\python.exe" -m pytest test_app.py --junitxml=test-results.xml --cov=app --cov-report=xml:coverage.xml'
+  displayName: 'Run tests with coverage'
 
 - task: PublishTestResults@2
   inputs:
     testResultsFormat: 'JUnit'
     testResultsFiles: 'test-results.xml'
   displayName: 'Publish test results'
+  condition: always()
+
+- task: PublishCodeCoverageResults@1
+  inputs:
+    codeCoverageTool: 'Cobertura'
+    summaryFileLocation: 'coverage.xml'
+  displayName: 'Publish code coverage'
   condition: always()
