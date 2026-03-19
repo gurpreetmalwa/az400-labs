@@ -5,8 +5,8 @@ trigger:
       - develop
 
 pool:
-  vmImage: 'ubuntu-latest'
+  name: 'my-local-agent'
 
 steps:
-- script: echo 'Hello from the pipeline'
+- script: echo 'Hello from the pipeline!'
   displayName: 'Say hello'
