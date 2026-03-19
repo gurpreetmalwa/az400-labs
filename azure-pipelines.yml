@@ -8,5 +8,18 @@ pool:
   name: 'my-local-agent'
 
 steps:
-- script: echo 'Hello from the pipeline!'
-  displayName: 'Say hello'
+- script: python --version
+  displayName: 'Check Python version'
+
+- script: pip install -r requirements.txt
+  displayName: 'Install dependencies'
+
+- script: pytest test_app.py --junitxml=test-results.xml
+  displayName: 'Run tests'
+
+- task: PublishTestResults@2
+  inputs:
+    testResultsFormat: 'JUnit'
+    testResultsFiles: 'test-results.xml'
+  displayName: 'Publish test results'
+  condition: always()
