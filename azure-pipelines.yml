@@ -8,13 +8,13 @@ pool:
   name: 'my-local-agent'
 
 steps:
-- script: 'C:\Program Files\Python311\python.exe --version'
+- script: '"C:\Program Files\Python311\python.exe" --version'
   displayName: 'Check Python version'
 
-- script: 'C:\Program Files\Python311\python.exe -m pip install -r requirements.txt'
+- script: '"C:\Program Files\Python311\python.exe" -m pip install -r requirements.txt'
   displayName: 'Install dependencies'
 
-- script: 'C:\Program Files\Python311\python.exe -m pytest test_app.py --junitxml=test-results.xml'
+- script: '"C:\Program Files\Python311\python.exe" -m pytest test_app.py --junitxml=test-results.xml'
   displayName: 'Run tests'
 
 - task: PublishTestResults@2
