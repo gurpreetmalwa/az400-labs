@@ -10,32 +10,65 @@ pool:
 variables:
 - group: keyvault-secrets
 
-steps:
-- script: '"C:\Program Files\Python311\python.exe" --version'
-  displayName: 'Check Python version'
+stages:
+- stage: Build
+  jobs:
+  - job: BuildAndTest
+    steps:
+    - script: '"C:\Program Files\Python311\python.exe" --version'
+      displayName: 'Check Python version'
 
-- script: '"C:\Program Files\Python311\python.exe" -m pip install -r requirements.txt'
-  displayName: 'Install dependencies'
+    - script: '"C:\Program Files\Python311\python.exe" -m pip install -r requirements.txt'
+      displayName: 'Install dependencies'
 
-- script: '"C:\Program Files\Python311\python.exe" -m flake8 app.py --max-line-length=88'
-  displayName: 'Lint check'
+    - script: '"C:\Program Files\Python311\python.exe" -m flake8 app.py --max-line-length=88'
+      displayName: 'Lint check'
 
-- script: '"C:\Program Files\Python311\python.exe" -m pytest test_app.py --junitxml=test-results.xml --cov=app --cov-report=xml:coverage.xml'
-  displayName: 'Run tests with coverage'
+    - script: '"C:\Program Files\Python311\python.exe" -m pytest test_app.py --junitxml=test-results.xml --cov=app --cov-report=xml:coverage.xml'
+      displayName: 'Run tests with coverage'
 
-- script: 'echo The secret is $(MY-SECRET-VALUE)'
-  displayName: 'Show secret from Key Vault'
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFormat: 'JUnit'
+        testResultsFiles: 'test-results.xml'
+      displayName: 'Publish test results'
+      condition: always()
 
-- task: PublishTestResults@2
-  inputs:
-    testResultsFormat: 'JUnit'
-    testResultsFiles: 'test-results.xml'
-  displayName: 'Publish test results'
-  condition: always()
+    - task: PublishCodeCoverageResults@1
+      inputs:
+        codeCoverageTool: 'Cobertura'
+        summaryFileLocation: 'coverage.xml'
+      displayName: 'Publish code coverage'
+      condition: always()
 
-- task: PublishCodeCoverageResults@1
-  inputs:
-    codeCoverageTool: 'Cobertura'
-    summaryFileLocation: 'coverage.xml'
-  displayName: 'Publish code coverage'
-  condition: always()
+    - task: ArchiveFiles@2
+      inputs:
+        rootFolderOrFile: '$(Build.SourcesDirectory)'
+        includeRootFolder: false
+        archiveType: 'zip'
+        archiveFile: '$(Build.ArtifactStagingDirectory)/app.zip'
+      displayName: 'Zip application files'
+
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        ArtifactName: 'drop'
+      displayName: 'Publish build artifact'
+
+- stage: PublishPackage
+  dependsOn: Build
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  jobs:
+  - job: PublishToArtifacts
+    steps:
+    - script: '"C:\Program Files\Python311\python.exe" -m pip install build twine'
+      displayName: 'Install build tools'
+
+    - script: '"C:\Program Files\Python311\python.exe" -m build'
+      displayName: 'Build package'
+
+    - script: '"C:\Program Files\Python311\python.exe" -m twine upload --repository-url https://pkgs.dev.azure.com/GurpreetSingh0111/az400-labs/_packaging/az400-feed/pypi/upload/ dist/* --non-interactive'
+      displayName: 'Publish to Azure Artifacts'
+      env:
+        TWINE_USERNAME: '$(System.AccessToken)'
+        TWINE_PASSWORD: '$(System.AccessToken)'
